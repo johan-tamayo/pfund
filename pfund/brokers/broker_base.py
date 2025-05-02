@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from pfund.typing import TradeEngineSettingsDict
 
 import logging
+from abc import ABC
 from collections import defaultdict
 
 from pfund.datas.data_base import BaseData
@@ -23,10 +24,9 @@ from pfund.managers.order_manager import OrderManager
 from pfund.managers.portfolio_manager import PortfolioManager
 from pfund.managers.risk_manager import RiskManager
 from pfund.enums import Environment, Broker, PublicDataChannel, PrivateDataChannel, DataChannelType
-from pfund.engines import get_engine
 
 
-class BaseBroker:
+class BaseBroker(ABC):
     def __init__(self, env: tENVIRONMENT, name: tBROKER):
         self.env = Environment[env.upper()]
         if self.env == Environment.BACKTEST:
@@ -34,7 +34,6 @@ class BaseBroker:
         self.name = self.bkr = Broker[name.upper()]
         self.logger = logging.getLogger('pfund')
         
-        self._engine = get_engine()
         self._zmq = None
         self._settings: TradeEngineSettingsDict = {}
         
@@ -145,6 +144,7 @@ class BaseBroker:
             if topic == 3 and self._settings.get('cancel_all_at', {}).get('disconnect', True):  # on disconnected
                 self.cancel_all_orders(reason='disconnect')
 
+    # FIXME: move to mtflow
     def schedule_jobs(self: CryptoBroker | IBBroker, scheduler: BackgroundScheduler):
         scheduler.add_job(self.reconcile_balances, 'interval', seconds=10)
         scheduler.add_job(self.reconcile_positions, 'interval', seconds=10)
